@@ -1,0 +1,16 @@
+{
+  "name": "myraha-status-helper",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.4"
+  }
+}
