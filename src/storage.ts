@@ -11,6 +11,9 @@ const DEFAULTS: AppState = {
   searchPausedUntil: null,
   cookieFingerprint: "",
   cookieUpdatedAt: null,
+  userAgent: "",
+  userAgentFingerprint: "",
+  userAgentUpdatedAt: null,
   lastSyncAt: null,
   lastSyncOk: null,
   retryCount: 0

@@ -26,6 +26,9 @@ export interface AppState {
   searchPausedUntil: string | null;
   cookieFingerprint: string;
   cookieUpdatedAt: string | null;
+  userAgent: string;
+  userAgentFingerprint: string;
+  userAgentUpdatedAt: string | null;
   lastSyncAt: string | null;
   lastSyncOk: boolean | null;
   retryCount: number;
@@ -38,8 +41,14 @@ export interface LogEntry {
   message: string;
 }
 
+export interface FieldSnapshot<T> {
+  state: ChangeState;
+  value: T;
+  lastUpdatedAt: string | null;
+}
+
 export interface StatusPayload {
-  schemaVersion: 2;
+  schemaVersion: 3;
   installationId: string;
   extensionVersion: string;
   sentAt: string;
@@ -51,9 +60,6 @@ export interface StatusPayload {
     lastUpdatedAt: string | null;
     items: CookieItem[];
   };
-  token: {
-    state: ChangeState;
-    value: string | null;
-    lastUpdatedAt: string | null;
-  };
+  token: FieldSnapshot<string | null>;
+  userAgent: FieldSnapshot<string | null>;
 }

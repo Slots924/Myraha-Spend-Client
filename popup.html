@@ -12,17 +12,19 @@
       <img src="/icons/icon-48.png" alt="">
       <div>
         <h1>Myraha</h1>
-        <p>SPEND CLIENT</p>
+        <p>SPEND WATCH</p>
       </div>
     </header>
     <label class="toggle"><span>Розширення</span><input id="enabled" type="checkbox"><i></i></label>
     <section class="status-card">
       <div><span>Cookie</span><strong id="cookie-status">—</strong></div>
       <div><span>Токен</span><strong id="token-status">—</strong></div>
+      <div><span>User-Agent</span><strong id="ua-status">—</strong></div>
       <div><span>Пошук</span><strong id="search-status">—</strong></div>
       <div><span>Синхронізація</span><strong id="sync-status">—</strong></div>
     </section>
-    <button id="sync" class="primary">Надіслати зараз</button>
+    <button id="sync" class="primary">Debug: відправити на сервер</button>
+    <p id="sync-result" class="muted"></p>
     <button id="settings" class="ghost">Налаштування і логи</button>
   </main>
   <script type="module" src="/src/popup.ts"></script>

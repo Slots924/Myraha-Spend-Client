@@ -12,9 +12,9 @@ export function endpointOrigin(apiUrl: string): string | null {
   }
 }
 
-export async function sendStatus(payload: StatusPayload): Promise<boolean> {
+export async function sendStatus(payload: StatusPayload, force = false): Promise<boolean> {
   const { apiUrl, clientKey, enabled } = await getState();
-  if (!enabled || !apiUrl) return false;
+  if ((!enabled && !force) || !apiUrl) return false;
 
   try {
     const response = await fetch(apiUrl, {

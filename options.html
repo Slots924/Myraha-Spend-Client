@@ -29,6 +29,7 @@
       <p class="muted">Значення читаються з браузера і разом із токеном надсилаються на сервер щогодини або після зміни cookie.</p>
       <button id="load-cookies" class="ghost">Показати cookie</button>
       <p id="cookie-date" class="muted"></p>
+      <p id="ua-date" class="muted"></p>
       <div id="cookies" class="secret-list"></div>
     </section>
     <section class="panel">
@@ -36,6 +37,7 @@
       <label>URL<input id="api-url" type="url" placeholder="https://api.example.com/fb_data/add"></label>
       <label>Ключ клієнта<input id="client-key" type="password" autocomplete="off"><small>Це ідентифікатор, а не надійний секрет: код розширення можна переглянути.</small></label>
       <button id="save" class="primary">Зберегти</button>
+      <button id="debug-send" class="ghost">Debug: відправити на сервер</button>
       <span id="save-result" class="muted"></span>
     </section>
     <section class="panel logs-head">

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Myraha Spend Client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Збирає Facebook cookie та access token зі сторінок вайтліста і надсилає їх на сервер.",
   "minimum_chrome_version": "120",
   "permissions": ["alarms", "cookies", "storage", "webRequest"],

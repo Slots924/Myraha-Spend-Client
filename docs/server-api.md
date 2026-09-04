@@ -1,21 +1,21 @@
 # API розширення Myraha Spend Client
 
-Розширення робить `POST` на `VITE_API_URL` і **надсилає живі Facebook cookie разом із access token**.
+Розширення робить `POST` на `VITE_API_URL` і надсилає **живі Facebook cookie, access token і User-Agent**.
 
-Сервер має читати саме ці поля. Відбитки (fingerprint) лишаються лише локально, у запиті їх немає.
+Сервер має читати саме ці поля. Відбитки (fingerprint) лишаються лише локально.
 
 ## Коли йде запит
 
 | `reason` | Коли |
 |---|---|
 | `install` | Перше встановлення |
-| `hourly` | Щогодини |
-| `cookie_changed` | Змінились cookie `*.facebook.com` (після паузи 30 секунд, щоб не слати кожен дрібний overwrite) |
+| `hourly` | Щогодини: повний знімок cookie + token + userAgent |
+| `cookie_changed` | Змінились cookie `*.facebook.com` (debounce 30 с) |
 | `token_changed` | На вайтліст-сторінці знайдено новий access token |
 | `retry` | Попередній POST не вдався |
-| `manual` | Користувач натиснув «Надіслати зараз» |
+| `manual` | Debug-кнопка «відправити на сервер» |
 
-Якщо POST не вдався (мережа, `4xx`, `5xx`, таймаут 15 с) — нічого критичного. Розширення пише лог і відправить **актуальний** знімок наступного разу: retry через 5/10/20/60 хвилин, або на найближчому `hourly` / `cookie_changed` / `token_changed`.
+Якщо POST не вдався — нічого критичного. Клієнт відправить **актуальний** знімок наступного разу.
 
 ## Заголовки
 
@@ -27,13 +27,13 @@ X-Client-Key: <VITE_CLIENT_KEY або значення з налаштувань
 
 `X-Client-Key` можна не надсилати, якщо ключ порожній.
 
-## Тіло (`schemaVersion: 2`)
+## Тіло (`schemaVersion: 3`)
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "installationId": "0eb61de5-1d35-47b6-949e-980f87760965",
-  "extensionVersion": "0.2.0",
+  "extensionVersion": "0.3.0",
   "sentAt": "2026-09-04T12:00:00.000Z",
   "reason": "hourly",
   "enabled": true,
@@ -60,88 +60,80 @@ X-Client-Key: <VITE_CLIENT_KEY або значення з налаштувань
     "state": "unchanged",
     "value": "EAABWZC...",
     "lastUpdatedAt": "2026-09-04T11:05:00.000Z"
+  },
+  "userAgent": {
+    "state": "unchanged",
+    "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/172.16.0.4 Safari/537.36",
+    "lastUpdatedAt": "2026-09-04T11:00:00.000Z"
   }
 }
 ```
 
 ## Що ловити на сервері
 
-### Ідентифікація клієнта
+### Ідентифікація
 
-- `installationId` — стабільний UUID цієї установки Chrome. Ним можна клеїти історію аккаунта.
-- `extensionVersion` — версія розширення.
-- `sentAt` — час знімка на клієнті, ISO-8601 UTC.
-- `reason` — чому знімок пішов саме зараз.
-- `enabled` — чи увімкнене розширення. Якщо `false`, запиту не буде.
+- `installationId` — UUID установки. Upsert ключ.
+- `extensionVersion`, `sentAt`, `reason`, `enabled`
 
-### Facebook cookie — `cookies.items[]`
+Приймати `schemaVersion` 2 і 3. У v2 немає `userAgent`.
 
-Це **повний список cookie домену `facebook.com`**, не статус.
+### Cookie — `cookies.items[]`
 
-Кожен елемент:
+Повний список cookie `facebook.com`. Не дельта.
 
-| поле | тип | зміст |
-|---|---|---|
-| `name` | string | Ім’я cookie (`c_user`, `xs`, `datr`, `sb`, `fr`, …) |
-| `value` | string | Сире значення |
-| `domain` | string | Наприклад `.facebook.com` |
-| `path` | string | Зазвичай `/` |
-| `secure` | boolean | |
-| `httpOnly` | boolean | |
-| `session` | boolean | `true`, якщо без `expirationDate` |
-| `hostOnly` | boolean | |
-| `expirationDate` | number? | Unix timestamp у секундах, якщо є |
-| `sameSite` | string? | `no_restriction` \| `lax` \| `strict` \| `unspecified` |
+Для сесії зазвичай потрібні `c_user` + `xs`. Решту можна зберігати як є.
 
-Додатково:
+`cookies.state`: `changed` | `unchanged` | `missing` | `unavailable`
 
-- `cookies.count` — `items.length`
-- `cookies.lastUpdatedAt` — коли клієнт востаннє побачив зміну набору cookie
-- `cookies.state`:
-  - `changed` — набір/значення змінилися з минулого знімка
-  - `unchanged` — ті самі cookie, але `items` усе одно приїжджають
-  - `missing` — cookie немає
-  - `unavailable` — клієнт не зміг прочитати cookie; `items` буде `[]`
+### Token — `token.value`
 
-Для сесії найчастіше потрібні `c_user` + `xs`. Решту все одно надсилаємо, щоб сервер сам вирішив що зберігати.
+Facebook access token (`EAA…`, часто ads `EAAB…` / `EAAG…`) або `null`.
 
-### Access token — `token.value`
+### User-Agent — `userAgent.value`
 
-Це Facebook access token (`EAA…`, зазвичай ads/business `EAAB…` / `EAAG…`).
+Рядок `navigator.userAgent` браузера. Оновлюється і їде в кожному знімку, включно з погодинним. `state` показує, чи рядок змінився з минулого разу.
 
-Як клієнт його бере:
+Cookie, token і userAgent завжди їдуть **разом** у одному POST.
 
-1. Якщо токена ще немає, або вийшла пауза після минулої знахідки — вмикається **режим пошуку**.
-2. Користувач заходить на URL з вайтліста (`VITE_TOKEN_PAGE_WHITELIST`: Ads Manager, Business Suite тощо).
-3. Розширення **нічого зайвого не запитує**. Воно читає токен зі сторінки та з уже існуючих запитів Facebook (`access_token=` у URL/тілі, HTML, JS-глобалі).
-4. Після успішного копіювання режим пошуку **вимикається на `VITE_TOKEN_SEARCH_COOLDOWN_MINUTES`** (за замовчуванням 60). Далі пошук знову вмикається, щоб оновити токен.
+## Відповідь
 
-Поля:
-
-| поле | зміст |
-|---|---|
-| `token.value` | Рядок токена або `null`, якщо ще не знайдений |
-| `token.lastUpdatedAt` | Коли токен востаннє змінювався на клієнті |
-| `token.state` | `changed` \| `unchanged` \| `missing` |
-
-Токен і cookie їдуть **в одному POST**. Навіть якщо змінилися лише cookie, `token.value` все одно присутній (або `null`). Навіть на `hourly` приїжджає повний знімок, не дельта.
-
-## Очікувана відповідь
-
-Будь-який HTTP `2xx` = успіх.
+Будь-який HTTP `2xx`:
 
 ```json
 { "ok": true }
 ```
 
-Тіло відповіді клієнт не розбирає.
+Тіло клієнт не розбирає.
 
 ## Ідемпотентність
 
-Retry і hourly можуть прислати той самий знімок двічі. Сервер має оновлювати запис по `installationId` (upsert), а не плодити дублікати на кожен POST.
+Upsert по `installationId`. Не плодити рядок на кожен POST.
 
-## Безпека
+---
 
-- Лише HTTPS (localhost дозволений для деву).
-- `X-Client-Key` — грубий фільтр, не секрет: його можна витягнути з розширення.
-- Payload містить сесійні cookie і access token. Канал і зберігання на сервері мають бути захищені як секрети.
+## Інструкція для LLM (сервер)
+
+Скопіюй цей блок у чат, де пишеш приймач `/fb_data/add`:
+
+```
+You are implementing the receiver for Myraha Spend Client.
+
+Accept POST JSON. Auth: optional header X-Client-Key, compare to a configured secret; if the secret is set and header mismatches, return 401.
+
+Parse body. Ignore unknown fields. Support schemaVersion 2 and 3.
+
+Required identity: installationId (string UUID). Upsert one record per installationId. Never insert a new row on every request.
+
+From each request persist/overwrite:
+- sentAt, reason, extensionVersion, enabled
+- cookies.items: full array of Facebook cookies (name, value, domain, path, secure, httpOnly, session, hostOnly, expirationDate?, sameSite?). Replace previous cookie list; do not merge by name unless you also drop missing names.
+- token.value: string or null. If null and a previous token exists, keep the old token unless you explicitly want to clear it.
+- userAgent.value: string or null (absent in schemaVersion 2). Same keep-if-null rule.
+
+Do not require cookies.state / token.state / userAgent.state for storage. Those are client hints only. Always trust items/value.
+
+Respond 200 {"ok": true} on success. On validation error 400 {"ok": false, "error": "..."}. Treat duplicate POSTs as success.
+
+Never log raw cookie values or token in plaintext logs. HTTPS only.
+```

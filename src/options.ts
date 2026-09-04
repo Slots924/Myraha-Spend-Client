@@ -37,6 +37,9 @@ async function render(): Promise<void> {
     `Після знахідки пошук вимикається на ${TOKEN_SEARCH_COOLDOWN_MINUTES} хв (VITE_TOKEN_SEARCH_COOLDOWN_MINUTES).`;
   document.querySelector("#whitelist")!.textContent = TOKEN_PAGE_WHITELIST.join("\n");
   document.querySelector("#cookie-date")!.textContent = `Остання зміна: ${formatDate(state.cookieUpdatedAt)}`;
+  document.querySelector("#ua-date")!.textContent = state.userAgent
+    ? `User-Agent є. Останнє оновлення: ${formatDate(state.userAgentUpdatedAt)}`
+    : "User-Agent ще не знімали";
   await renderLogs();
 }
 
@@ -61,6 +64,19 @@ document.querySelector("#save")!.addEventListener("click", async () => {
   await patchState({ apiUrl: apiUrl.value.trim(), clientKey: clientKey.value.trim() });
   result.textContent = "Збережено";
   await chrome.runtime.sendMessage({ type: "manual-sync" });
+  await render();
+});
+
+document.querySelector("#debug-send")!.addEventListener("click", async () => {
+  const result = document.querySelector("#save-result")!;
+  const origin = endpointOrigin(apiUrl.value.trim());
+  if (apiUrl.value.trim() && origin && !(await chrome.permissions.contains({ origins: [origin] }))) {
+    const granted = await chrome.permissions.request({ origins: [origin] });
+    if (!granted) { result.textContent = "Chrome не надав доступ до адреси"; return; }
+  }
+  result.textContent = "Надсилаю…";
+  const response = await chrome.runtime.sendMessage({ type: "manual-sync" }) as { ok?: boolean };
+  result.textContent = response?.ok ? "Відправлено cookie, токен і user-agent" : "Не вдалося, спробуємо наступного разу";
   await render();
 });
 

@@ -51,9 +51,26 @@ async function acceptToken(token: string): Promise<boolean> {
   return true;
 }
 
-async function checkAndSync(reason: SyncReason): Promise<void> {
+async function snapshotUserAgent(before: Awaited<ReturnType<typeof getState>>): Promise<{
+  state: ChangeState;
+  value: string | null;
+  lastUpdatedAt: string | null;
+}> {
+  const value = navigator.userAgent || "";
+  const uaFingerprint = await fingerprint(value);
+  const state: ChangeState = !value ? "missing" : uaFingerprint === before.userAgentFingerprint ? "unchanged" : "changed";
+  let lastUpdatedAt = before.userAgentUpdatedAt;
+  if (state === "changed" || (!before.userAgentFingerprint && value)) {
+    lastUpdatedAt = new Date().toISOString();
+    await patchState({ userAgent: value, userAgentFingerprint: uaFingerprint, userAgentUpdatedAt: lastUpdatedAt });
+    if (before.userAgentFingerprint) await addLog("info", "User-Agent оновлено");
+  }
+  return { state, value: value || null, lastUpdatedAt };
+}
+
+async function checkAndSync(reason: SyncReason, force = false): Promise<boolean> {
   const before = await getState();
-  if (!before.enabled) return;
+  if (!before.enabled && !force) return false;
 
   let cookieState: ChangeState = "unavailable";
   let cookieCount = 0;
@@ -83,8 +100,9 @@ async function checkAndSync(reason: SyncReason): Promise<void> {
     await addLog("success", current.tokenFingerprint ? "Токен оновлено" : "Токен додано");
   }
 
+  const userAgent = await snapshotUserAgent(current);
   const payload: StatusPayload = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     installationId: current.installationId,
     extensionVersion: chrome.runtime.getManifest().version,
     sentAt: new Date().toISOString(),
@@ -100,9 +118,10 @@ async function checkAndSync(reason: SyncReason): Promise<void> {
       state: tokenState,
       value: current.token || null,
       lastUpdatedAt: tokenUpdatedAt
-    }
+    },
+    userAgent
   };
-  await sendStatus(payload);
+  return sendStatus(payload, force);
 }
 
 async function captureFromRequest(details: chrome.webRequest.OnBeforeRequestDetails): Promise<void> {
@@ -163,7 +182,7 @@ chrome.runtime.onMessage.addListener((message: { type?: string; token?: string }
     return true;
   }
   if (message.type !== "manual-sync") return;
-  checkAndSync("manual").then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+  checkAndSync("manual", true).then((ok) => sendResponse({ ok: !!ok })).catch(() => sendResponse({ ok: false }));
   return true;
 });
 

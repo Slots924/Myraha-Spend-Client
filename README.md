@@ -4,15 +4,25 @@ Chrome-розширення (TypeScript, Manifest V3). Воно читає Faceb
 
 Детальний контракт: [docs/server-api.md](docs/server-api.md).
 
-## Запуск
+## Як зібрати і запустити
 
-1. Node.js 20+.
-2. `npm install`
-3. Скопіюйте `.env.example` → `.env` і заповніть.
-4. `npm run build`
-5. `chrome://extensions` → Developer mode → **Load unpacked** → папка `dist`
+Потрібен Node.js 20+.
 
-Для розробки: `npm run dev`, після перебудови Reload на сторінці розширень.
+```bat
+cd "C:\Users\Darkness\Documents\Myraha Spend Client"
+npm install
+copy .env.example .env
+npm run build
+```
+
+У `.env` поставте свій `VITE_API_URL` і за потреби ключ / вайтліст / паузу пошуку. Потім знову `npm run build`.
+
+1. Відкрийте `chrome://extensions`
+2. Увімкніть **Developer mode**
+3. **Load unpacked** → виберіть папку `dist` (не корінь репо)
+4. Натисніть іконку розширення → **Debug: відправити на сервер** (Chrome запитає доступ до API-хоста)
+
+Для розробки: `npm run dev`, після змін натисніть Reload на картці розширення.
 
 ## `.env`
 
@@ -42,6 +52,9 @@ VITE_TOKEN_PAGE_WHITELIST=https://www.facebook.com/adsmanager,https://www.facebo
 
 - повний масив cookie (`name`, `value`, `domain`, `path`, flags, `expirationDate`)
 - поточний access token (`token.value`)
+- поточний `userAgent.value`
+
+Debug-кнопка в popup і в налаштуваннях шле той самий знімок з `reason: "manual"`.
 
 Якщо POST впав — ігноруємо і шлемо актуальний знімок наступного разу.
 
