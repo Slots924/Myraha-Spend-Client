@@ -28,14 +28,14 @@ export async function sendStatus(payload: StatusPayload): Promise<boolean> {
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     await patchState({ lastSyncAt: new Date().toISOString(), lastSyncOk: true, retryCount: 0 });
-    await addLog("success", `Статус надіслано успішно (HTTP ${response.status})`);
+    await addLog("success", `Дані надіслано успішно (HTTP ${response.status})`);
     return true;
-  } catch (error) {
+  } catch {
     const { retryCount } = await getState();
     const nextRetry = Math.min(retryCount + 1, 4);
     await patchState({ lastSyncAt: new Date().toISOString(), lastSyncOk: false, retryCount: nextRetry });
     await chrome.alarms.create("sync-retry", { delayInMinutes: Math.min(5 * 2 ** retryCount, 60) });
-    await addLog("error", `Не вдалося надіслати статус: ${error instanceof Error ? error.message : "невідома помилка"}`);
+    await addLog("error", "Не вдалося надіслати дані, спробуємо наступного разу");
     return false;
   }
 }

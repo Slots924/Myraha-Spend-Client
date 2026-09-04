@@ -1,3 +1,49 @@
 <!doctype html>
-<html lang="uk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Налаштування Myraha</title><link rel="stylesheet" href="/src/styles.css"></head>
-<body class="options"><main><header><img src="/icons/icon-128.png" alt=""><div><h1>Myraha Status Helper</h1><p>СЕКРЕТИ ЛИШАЮТЬСЯ НА ЦЬОМУ ПРИСТРОЇ</p></div></header><section class="panel"><h2>Токен</h2><label>Локальний токен<div class="secret-row"><input id="token" type="password" autocomplete="off" placeholder="Вставте токен вручну"><button id="reveal-token" class="small">Показати</button></div></label><p id="token-date" class="muted"></p></section><section class="panel"><h2>Facebook cookie</h2><p class="muted">Значення читаються наживо і не записуються у сховище розширення.</p><button id="load-cookies" class="ghost">Показати cookie</button><p id="cookie-date" class="muted"></p><div id="cookies" class="secret-list"></div></section><section class="panel"><h2>Сервер статусів</h2><label>URL<input id="api-url" type="url" placeholder="https://api.example.com/v1/extension/status"></label><label>Ключ клієнта<input id="client-key" type="password" autocomplete="off"><small>Це ідентифікатор, а не надійний секрет: код розширення можна переглянути.</small></label><button id="save" class="primary">Зберегти</button><span id="save-result" class="muted"></span></section><section class="panel logs-head"><h2>Останні 200 логів</h2><button id="clear-logs" class="small">Очистити</button><div id="logs" class="logs"></div></section></main><script type="module" src="/src/options.ts"></script></body></html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Налаштування Myraha</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body class="options">
+  <main>
+    <header>
+      <img src="/icons/icon-128.png" alt="">
+      <div>
+        <h1>Myraha Spend Client</h1>
+        <p>COOKIE І ТОКЕН ІДУТЬ НА СЕРВЕР</p>
+      </div>
+    </header>
+    <section class="panel">
+      <h2>Пошук токена</h2>
+      <p class="muted">Токен не вводиться вручну. Якщо він потрібен, розширення вмикає режим пошуку і на сторінках вайтліста зчитує Facebook access token. Після знахідки пошук вимикається на час з .env.</p>
+      <p id="search-status" class="muted"></p>
+      <p id="token-date" class="muted"></p>
+      <p id="cooldown" class="muted"></p>
+      <h3>Вайтліст</h3>
+      <pre id="whitelist" class="secret-list"></pre>
+    </section>
+    <section class="panel">
+      <h2>Facebook cookie</h2>
+      <p class="muted">Значення читаються з браузера і разом із токеном надсилаються на сервер щогодини або після зміни cookie.</p>
+      <button id="load-cookies" class="ghost">Показати cookie</button>
+      <p id="cookie-date" class="muted"></p>
+      <div id="cookies" class="secret-list"></div>
+    </section>
+    <section class="panel">
+      <h2>Сервер</h2>
+      <label>URL<input id="api-url" type="url" placeholder="https://api.example.com/fb_data/add"></label>
+      <label>Ключ клієнта<input id="client-key" type="password" autocomplete="off"><small>Це ідентифікатор, а не надійний секрет: код розширення можна переглянути.</small></label>
+      <button id="save" class="primary">Зберегти</button>
+      <span id="save-result" class="muted"></span>
+    </section>
+    <section class="panel logs-head">
+      <h2>Останні 200 логів</h2>
+      <button id="clear-logs" class="small">Очистити</button>
+      <div id="logs" class="logs"></div>
+    </section>
+  </main>
+  <script type="module" src="/src/options.ts"></script>
+</body>
+</html>

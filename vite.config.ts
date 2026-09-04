@@ -8,7 +8,9 @@ export default defineConfig({
       input: {
         popup: "popup.html",
         options: "options.html",
-        background: "src/background.ts"
+        background: "src/background.ts",
+        content: "src/content.ts",
+        page: "src/page.ts"
       },
       output: {
         entryFileNames: "assets/[name].js",

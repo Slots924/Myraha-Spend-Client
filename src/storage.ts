@@ -8,6 +8,7 @@ const DEFAULTS: AppState = {
   token: "",
   tokenFingerprint: "",
   tokenUpdatedAt: null,
+  searchPausedUntil: null,
   cookieFingerprint: "",
   cookieUpdatedAt: null,
   lastSyncAt: null,

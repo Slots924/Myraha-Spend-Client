@@ -1,5 +1,20 @@
 export type ChangeState = "changed" | "unchanged" | "missing" | "unavailable";
 
+export type SyncReason = "install" | "hourly" | "cookie_changed" | "token_changed" | "retry" | "manual";
+
+export interface CookieItem {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  secure: boolean;
+  httpOnly: boolean;
+  session: boolean;
+  hostOnly: boolean;
+  expirationDate?: number;
+  sameSite?: string;
+}
+
 export interface AppState {
   enabled: boolean;
   installationId: string;
@@ -8,6 +23,7 @@ export interface AppState {
   token: string;
   tokenFingerprint: string;
   tokenUpdatedAt: string | null;
+  searchPausedUntil: string | null;
   cookieFingerprint: string;
   cookieUpdatedAt: string | null;
   lastSyncAt: string | null;
@@ -23,12 +39,21 @@ export interface LogEntry {
 }
 
 export interface StatusPayload {
-  schemaVersion: 1;
+  schemaVersion: 2;
   installationId: string;
   extensionVersion: string;
   sentAt: string;
-  reason: "install" | "hourly" | "cookie_changed" | "token_changed" | "retry" | "manual";
+  reason: SyncReason;
   enabled: boolean;
-  cookies: { state: ChangeState; count: number; lastUpdatedAt: string | null };
-  token: { state: ChangeState; lastUpdatedAt: string | null };
+  cookies: {
+    state: ChangeState;
+    count: number;
+    lastUpdatedAt: string | null;
+    items: CookieItem[];
+  };
+  token: {
+    state: ChangeState;
+    value: string | null;
+    lastUpdatedAt: string | null;
+  };
 }

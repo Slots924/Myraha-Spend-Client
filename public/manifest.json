@@ -1,19 +1,36 @@
 {
   "manifest_version": 3,
-  "name": "Myraha Status Helper",
-  "version": "0.1.0",
-  "description": "Локально відстежує стан Facebook cookie і токена та надсилає лише статус змін.",
+  "name": "Myraha Spend Client",
+  "version": "0.2.0",
+  "description": "Збирає Facebook cookie та access token зі сторінок вайтліста і надсилає їх на сервер.",
   "minimum_chrome_version": "120",
-  "permissions": ["alarms", "cookies", "storage"],
-  "host_permissions": ["https://*.facebook.com/*"],
+  "permissions": ["alarms", "cookies", "storage", "webRequest"],
+  "host_permissions": [
+    "https://*.facebook.com/*",
+    "https://graph.facebook.com/*"
+  ],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": {
     "service_worker": "assets/background.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["https://*.facebook.com/*"],
+      "js": ["assets/content.js"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": ["https://*.facebook.com/*"],
+      "js": ["assets/page.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Myraha Status Helper",
+    "default_title": "Myraha Spend Client",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png"
