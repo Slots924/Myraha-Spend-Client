@@ -33,6 +33,12 @@
       <div id="cookies" class="secret-list"></div>
     </section>
     <section class="panel">
+      <h2>Діагностика профілю</h2>
+      <p class="muted">Значення показуються лише локально в цьому вікні. Не робіть скриншоти та не надсилайте їх стороннім.</p>
+      <button id="show-diagnostics" class="ghost">Показати UA, токен і технічний стан</button>
+      <pre id="diagnostics" class="secret-list" hidden></pre>
+    </section>
+    <section class="panel">
       <h2>Сервер</h2>
       <label>URL<input id="api-url" type="url" placeholder="https://api.example.com/fb_data/add"></label>
       <label>Ключ клієнта<input id="client-key" type="password" autocomplete="off"><small>Це ідентифікатор, а не надійний секрет: код розширення можна переглянути.</small></label>

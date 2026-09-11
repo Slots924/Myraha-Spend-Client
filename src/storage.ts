@@ -14,6 +14,12 @@ const DEFAULTS: AppState = {
   userAgent: "",
   userAgentFingerprint: "",
   userAgentUpdatedAt: null,
+  userAgentSource: "",
+  lastPageUrl: "",
+  lastPageSeenAt: null,
+  lastTokenSource: "",
+  lastTokenCandidateAt: null,
+  lastCookieError: "",
   lastSyncAt: null,
   lastSyncOk: null,
   retryCount: 0

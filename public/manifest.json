@@ -19,13 +19,13 @@
     {
       "matches": ["https://*.facebook.com/*"],
       "js": ["assets/content.js"],
-      "run_at": "document_idle",
+      "run_at": "document_start",
       "world": "ISOLATED"
     },
     {
       "matches": ["https://*.facebook.com/*"],
       "js": ["assets/page.js"],
-      "run_at": "document_idle",
+      "run_at": "document_start",
       "world": "MAIN"
     }
   ],

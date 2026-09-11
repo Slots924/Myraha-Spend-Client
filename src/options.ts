@@ -53,6 +53,23 @@ document.querySelector("#load-cookies")!.addEventListener("click", async () => {
   }
 });
 
+document.querySelector("#show-diagnostics")!.addEventListener("click", async () => {
+  const box = document.querySelector<HTMLPreElement>("#diagnostics")!;
+  const state = await getState();
+  box.hidden = false;
+  box.textContent = [
+    `User-Agent (${state.userAgentSource || "ще не отримано"}):`, state.userAgent || "—",
+    "", "Access token:", state.token || "—",
+    "", "Стан:",
+    `Остання Facebook-сторінка: ${state.lastPageUrl || "—"}`,
+    `Сторінку бачили: ${formatDate(state.lastPageSeenAt)}`,
+    `Токен отримано з: ${state.lastTokenSource || "—"}`,
+    `Кандидат токена бачили: ${formatDate(state.lastTokenCandidateAt)}`,
+    `Cookies оновлено: ${formatDate(state.cookieUpdatedAt)}`,
+    `Помилка cookies: ${state.lastCookieError || "—"}`
+  ].join("\n");
+});
+
 document.querySelector("#save")!.addEventListener("click", async () => {
   const origin = endpointOrigin(apiUrl.value.trim());
   const result = document.querySelector("#save-result")!;

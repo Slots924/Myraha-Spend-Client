@@ -29,6 +29,12 @@ export interface AppState {
   userAgent: string;
   userAgentFingerprint: string;
   userAgentUpdatedAt: string | null;
+  userAgentSource: "page" | "background" | "";
+  lastPageUrl: string;
+  lastPageSeenAt: string | null;
+  lastTokenSource: string;
+  lastTokenCandidateAt: string | null;
+  lastCookieError: string;
   lastSyncAt: string | null;
   lastSyncOk: boolean | null;
   retryCount: number;

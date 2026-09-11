@@ -17,9 +17,17 @@ async function searchStatus(): Promise<SearchStatus | null> {
 async function submit(token: string, prefixes: string[]): Promise<void> {
   if (!isWhitelisted(location.href, prefixes)) return;
   try {
-    await chrome.runtime.sendMessage({ type: "token-found", token });
+    await chrome.runtime.sendMessage({ type: "token-found", token, source: "page-script" });
   } catch {
     return;
+  }
+}
+
+async function reportPageContext(): Promise<void> {
+  try {
+    await chrome.runtime.sendMessage({ type: "page-context", userAgent: navigator.userAgent, url: location.href });
+  } catch {
+    // The service worker may be restarting; the periodic scan will retry shortly.
   }
 }
 
@@ -35,7 +43,7 @@ window.addEventListener("message", (event: MessageEvent) => {
 
 function pickToken(text: string): string | null {
   let best: string | null = null;
-  for (const match of text.matchAll(/\b(EAA[A-Za-z0-9]{50,})\b/g)) {
+  for (const match of text.matchAll(/\b(EAA[A-Za-z0-9_-]{20,})\b/g)) {
     const token = match[1];
     if (!token) continue;
     const rank = (value: string) => value.startsWith("EAAB") ? 2 : value.startsWith("EAAG") ? 1 : 0;
@@ -52,4 +60,5 @@ async function scanPage(): Promise<void> {
 }
 
 void scanPage();
-setInterval(() => { void scanPage(); }, 3000);
+void reportPageContext();
+setInterval(() => { void scanPage(); void reportPageContext(); }, 15_000);

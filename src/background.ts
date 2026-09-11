@@ -31,8 +31,9 @@ async function pauseSearch(): Promise<void> {
   await addLog("info", "Пошук токена призупинено");
 }
 
-async function acceptToken(token: string): Promise<boolean> {
+async function acceptToken(token: string, source = "unknown"): Promise<boolean> {
   if (!isAccessToken(token)) return false;
+  await patchState({ lastTokenCandidateAt: new Date().toISOString() });
   if (!(await isSearchActive())) return false;
 
   const before = await getState();
@@ -43,6 +44,7 @@ async function acceptToken(token: string): Promise<boolean> {
     tokenFingerprint,
     tokenUpdatedAt: changed ? new Date().toISOString() : before.tokenUpdatedAt ?? new Date().toISOString()
   });
+  await patchState({ lastTokenSource: source });
   await pauseSearch();
   if (changed) {
     await addLog("success", before.token ? "Токен оновлено зі сторінки вайтліста" : "Токен знайдено на сторінці вайтліста");
@@ -56,7 +58,9 @@ async function snapshotUserAgent(before: Awaited<ReturnType<typeof getState>>): 
   value: string | null;
   lastUpdatedAt: string | null;
 }> {
-  const value = navigator.userAgent || "";
+  // AdsPower overrides the page UA, not necessarily the extension service worker UA.
+  // The page script reports the profile UA when a Facebook tab is opened.
+  const value = before.userAgent || "";
   const uaFingerprint = await fingerprint(value);
   const state: ChangeState = !value ? "missing" : uaFingerprint === before.userAgentFingerprint ? "unchanged" : "changed";
   let lastUpdatedAt = before.userAgentUpdatedAt;
@@ -83,10 +87,13 @@ async function checkAndSync(reason: SyncReason, force = false): Promise<boolean>
     cookieState = !snapshot.fingerprint ? "missing" : snapshot.fingerprint === before.cookieFingerprint ? "unchanged" : "changed";
     if (cookieState === "changed" || (!before.cookieFingerprint && snapshot.fingerprint)) {
       cookieUpdatedAt = new Date().toISOString();
-      await patchState({ cookieFingerprint: snapshot.fingerprint, cookieUpdatedAt });
+      await patchState({ cookieFingerprint: snapshot.fingerprint, cookieUpdatedAt, lastCookieError: "" });
       await addLog("success", before.cookieFingerprint ? "Facebook cookie оновилися" : "Facebook cookie отримано");
+    } else {
+      await patchState({ lastCookieError: "" });
     }
-  } catch {
+  } catch (error) {
+    await patchState({ lastCookieError: error instanceof Error ? error.message : String(error) });
     await addLog("error", "Не вдалося прочитати Facebook cookie");
   }
 
@@ -137,7 +144,7 @@ async function captureFromRequest(details: chrome.webRequest.OnBeforeRequestDeta
   }
   if (!isWhitelistedUrl(pageUrl) && !isWhitelistedUrl(details.initiator) && !isWhitelistedUrl(details.url)) return;
   const token = extractAccessToken(requestBodyText(details));
-  if (token) await acceptToken(token);
+  if (token) await acceptToken(token, "webRequest");
 }
 
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
@@ -172,13 +179,39 @@ chrome.alarms.onAlarm.addListener(async ({ name }) => {
   if (name === SEARCH_RESUME) await addLog("info", "Режим пошуку токена знову активний");
 });
 
-chrome.runtime.onMessage.addListener((message: { type?: string; token?: string }, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: { type?: string; token?: string; userAgent?: string; url?: string; source?: string }, _sender, sendResponse) => {
+  if (message.type === "page-context") {
+    void (async () => {
+      const userAgent = message.userAgent?.trim() ?? "";
+      const url = message.url ?? "";
+      const now = new Date().toISOString();
+      const before = await getState();
+      const uaChanged = Boolean(userAgent) && userAgent !== before.userAgent;
+      const urlChanged = Boolean(url) && url !== before.lastPageUrl;
+      await patchState({
+        ...(uaChanged
+          ? {
+              userAgent,
+              userAgentFingerprint: await fingerprint(userAgent),
+              userAgentUpdatedAt: now,
+              userAgentSource: "page" as const
+            }
+          : {}),
+        lastPageUrl: url,
+        lastPageSeenAt: now
+      });
+      if (uaChanged) await addLog("info", "User-Agent зчитано зі сторінки профілю");
+      else if (urlChanged) await addLog("info", "Facebook-сторінка оновилася");
+      sendResponse({ ok: true });
+    })().catch(() => sendResponse({ ok: false }));
+    return true;
+  }
   if (message.type === "search-status") {
     isSearchActive().then((active) => sendResponse({ active, prefixes: TOKEN_PAGE_WHITELIST })).catch(() => sendResponse({ active: false, prefixes: TOKEN_PAGE_WHITELIST }));
     return true;
   }
   if (message.type === "token-found" && message.token) {
-    acceptToken(message.token).then((ok) => sendResponse({ ok })).catch(() => sendResponse({ ok: false }));
+    acceptToken(message.token, message.source ?? "page").then((ok) => sendResponse({ ok })).catch(() => sendResponse({ ok: false }));
     return true;
   }
   if (message.type !== "manual-sync") return;
