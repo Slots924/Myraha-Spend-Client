@@ -7,7 +7,8 @@
   "permissions": ["alarms", "cookies", "storage", "webRequest"],
   "host_permissions": [
     "https://*.facebook.com/*",
-    "https://graph.facebook.com/*"
+    "https://graph.facebook.com/*",
+    "https://myraha.xyz/*"
   ],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": {

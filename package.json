@@ -4,8 +4,9 @@
   "version": "0.3.0",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && node scripts/inject-api-host.mjs",
     "dev": "vite build --watch",
+    "pack": "npm run build && node scripts/pack.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
