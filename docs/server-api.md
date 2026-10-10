@@ -66,7 +66,7 @@ X-Client-Key: <ключ клієнта>
 
 | Поле | Тип | Значення |
 |---|---|---|
-| `profileId` | string; null лише для Debug | Унікальний AdsPower `user_id`, основний ключ профілю |
+| `profileId` | string; null лише для Debug | Унікальний AdsPower `user_id` |
 | `profileInfo.serialNumber` | string або null | AdsPower `serial_number`; номер як рядок |
 | `profileInfo.name` | string або null | Ім’я профілю |
 | `profileInfo.groupName` | string або null | Назва групи, включно з Unicode/emoji |
@@ -113,6 +113,61 @@ ID при наступному запуску. Перший запит — че�
 
 Fingerprint, дата оновлення інформації AdsPower, помилки й логи залишаються локально.
 
+## Типи полів запиту
+
+У поточному форматі всі поля верхнього рівня та вкладені поля з таблиць
+присутні в кожному запиті. Виняток — `expirationDate` і `sameSite` у cookie:
+вони можуть бути відсутніми. Значення `null` передається явно, а не як рядок.
+
+| Поле | Тип |
+|---|---|
+| `schemaVersion` | number, поточне значення `4` |
+| `profileId` | string або null, умови описані вище |
+| `profileInfo` | object із `serialNumber`, `name`, `groupName` |
+| `installationId` | string UUID |
+| `extensionVersion` | string |
+| `sentAt` | string, ISO 8601 UTC |
+| `reason` | string, значення з таблиці подій нижче |
+| `enabled` | boolean |
+| `cookies` | object із `state`, `count`, `lastUpdatedAt`, `items` |
+| `token` | object із `state`, `value`, `lastUpdatedAt` |
+| `userAgent` | object із `state`, `value`, `lastUpdatedAt` |
+| `cookies.state`, `token.state`, `userAgent.state` | string: `changed`, `unchanged`, `missing`, `unavailable` |
+| `cookies.count` | number, кількість елементів у `cookies.items` |
+| `cookies.lastUpdatedAt`, `token.lastUpdatedAt`, `userAgent.lastUpdatedAt` | string ISO 8601 UTC або null |
+| `cookies.items` | array об’єктів cookie; може бути порожнім |
+| `token.value`, `userAgent.value` | string або null |
+
+### Об’єкт cookie
+
+| Поле | Тип | Значення |
+|---|---|---|
+| `name` | string | Назва cookie |
+| `value` | string | Поточне значення cookie |
+| `domain` | string | Домен cookie |
+| `path` | string | Шлях cookie |
+| `secure` | boolean | Cookie передається через захищене з’єднання |
+| `httpOnly` | boolean | Cookie недоступна JavaScript сторінки |
+| `session` | boolean | Cookie належить до поточної сесії |
+| `hostOnly` | boolean | Cookie прив’язана до конкретного хоста |
+| `expirationDate` | number, необов’язкове | Час завершення дії в секундах Unix; може містити дробову частину |
+| `sameSite` | string, необов’язкове | `no_restriction`, `lax`, `strict` або `unspecified` |
+
+### Значення state
+
+| Значення | Зміст |
+|---|---|
+| `changed` | Клієнт зафіксував нове або змінене значення |
+| `unchanged` | Значення збігається з останнім локально збереженим відбитком |
+| `missing` | Значення відсутнє |
+| `unavailable` | Значення не вдалося прочитати; зараз використовується для помилки читання cookie |
+
+Токен і UA можуть мати `state: "unchanged"` уже в першому запиті після їх
+оновлення: клієнт зберігає локальний відбиток під час отримання значення.
+Фактичні дані містяться в `items` та `value` незалежно від `state`.
+При помилці читання cookie надсилаються `state: "unavailable"`, `count: 0`,
+`items: []`; це відрізняється від успішного читання порожнього списку.
+
 ## Коли надсилається запит
 
 | `reason` | Подія |
@@ -128,59 +183,28 @@ Fingerprint, дата оновлення інформації AdsPower, поми
 Повтор надсилає актуальний знімок. Повтор без ID автоматично заблокований,
 навіть якщо початкове відправлення було Debug.
 
-## Обробка на сервері
+## Відповідь сервера
 
-Для звичайних запитів v4 вимагати непорожній profileId і робити upsert за ним.
-installationId зберігати як додатковий ідентифікатор установки.
-Debug без ID приймати як тестовий запис за installationId окремо від записів профілів.
-Якщо ID є, навіть Debug оновлює запис цього профілю.
+Клієнт визначає результат за HTTP-статусом. Будь-який статус **200–299**
+означає успішне відправлення. Тіло відповіді не читається: обов’язкових
+JSON-полів відповіді немає, порожнє тіло також підтримується.
 
-При кожному запиті оновлювати актуальні значення незалежно від state:
+Приклад успішної відповіді:
 
-- profileInfo.serialNumber/name/groupName: записувати рядок або null.
-- cookies.items: замінювати список повністю, включно з порожнім списком.
-  При cookies.state: unavailable зберігати попередні cookie: знімок не вдалося прочитати.
-- token.value і userAgent.value: записувати непорожнє значення; при null
-  зберігати попереднє, якщо воно є.
-- sentAt, reason, extensionVersion, enabled, installationId та часові поля.
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
 
-Будь-який HTTP 2xx означає успіх. Клієнт не розбирає тіло відповіді.
-Наприклад: `200 {"ok": true}`. Повторні запити мають бути ідемпотентними.
-
-Якщо підтримуються старі клієнти v2/v3, вони не мають AdsPower-полів:
-обробляти за installationId, не очищати нові поля через їх відсутність.
-
-## Готове завдання для LLM на сервері
-
-```text
-Онови приймач POST /fb_data/add для Myraha Spend Client, schemaVersion 4.
-JSON має profileId, profileInfo {serialNumber, name, groupName}, installationId,
-extensionVersion, sentAt, reason, enabled, cookies {state, count, lastUpdatedAt,
-items[]}, token {state, value, lastUpdatedAt}, userAgent {state, value, lastUpdatedAt}.
-
-Для v4 profileId — непорожній рядок, обов'язковий для всіх reason, крім manual.
-manual дозволяє profileId: null: це Debug-тест, зберігай окремо за installationId.
-За наявності profileId роби upsert за profileId для будь-якого reason.
-installationId — додатковий ідентифікатор установки, не ключ профілю AdsPower.
-profileInfo завжди містить три поля string|null. serialNumber — рядок,
-groupName — назва групи, підтримуй Unicode/emoji. Записуй значення, включно з null.
-Метадані можуть приходити із затримкою; їх оновлення не запускає окремий POST.
-
-cookies.items — повний знімок: заміни попередній список, навіть якщо порожній.
-Якщо cookies.state == unavailable, збережи попередній список.
-Поля cookie: name, value, domain, path, secure, httpOnly, session, hostOnly,
-expirationDate? (число), sameSite? (рядок).
-token.value і userAgent.value — string|null; при null зберігай попереднє значення.
-Оновлюй дані навіть при state == unchanged: state відображає локальні зміни,
-а не факт успішного відправлення на сервер.
-Зберігай sentAt, reason, extensionVersion, enabled, installationId та часові поля.
-
-Якщо налаштований секрет, перевіряй X-Client-Key, при невідповідності — 401.
-Валідуй типи, ігноруй невідомі поля. Успіх — HTTP 200 {"ok":true}.
-Помилка валідації — HTTP 400 {"ok":false,"error":"..."}.
-Повторний POST не повинен створювати дублікати.
-Не логуй сирі токени та cookie.
-Якщо потрібна сумісність із v2/v3: вони ідентифікуються за installationId,
-у v2 немає userAgent, у v2/v3 немає profileId/profileInfo. Відсутність цих полів
-у старому форматі не повинна очищати значення, отримані раніше від v4.
+{"ok": true}
 ```
+
+Відповідь `204 No Content` також вважається успішною.
+Статуси поза діапазоном 2xx, мережева помилка або тайм-аут запиту **15 секунд**
+вважаються невдалим відправленням і запускають описаний вище механізм повторів.
+Це стосується також 400, 401, 403, 429 і 5xx: окремої обробки цих кодів немає.
+Тіло помилки та заголовок `Retry-After` клієнт не використовує.
+
+## Попередні формати
+
+Поточна збірка надсилає лише v4. У попередньому v3 були cookie, token та
+userAgent, але не було profileId/profileInfo. У v2 також не було userAgent.
