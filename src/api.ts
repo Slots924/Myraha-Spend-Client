@@ -15,8 +15,10 @@ export function endpointOrigin(apiUrl: string): string | null {
 export async function sendStatus(payload: StatusPayload, force = false): Promise<boolean> {
   const { apiUrl, clientKey, enabled } = await getState();
   if ((!enabled && !force) || !apiUrl) return false;
+  if (!force && !payload.profileId) return false;
 
   try {
+    await addLog("info", force ? "Debug: надсилаємо дані на сервер" : "Надсилаємо дані на сервер");
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {

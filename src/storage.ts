@@ -1,6 +1,12 @@
 import type { AppState, LogEntry } from "./types";
 
 const DEFAULTS: AppState = {
+  profileId: null,
+  profileIdUpdatedAt: null,
+  profileInfo: { serialNumber: null, name: null, groupName: null },
+  profileInfoUpdatedAt: null,
+  profileInfoError: "",
+  profileRefreshJob: null,
   enabled: true,
   installationId: "",
   apiUrl: import.meta.env.VITE_API_URL ?? "",

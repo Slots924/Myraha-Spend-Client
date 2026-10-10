@@ -16,6 +16,12 @@ export interface CookieItem {
 }
 
 export interface AppState {
+  profileId: string | null;
+  profileIdUpdatedAt: string | null;
+  profileInfo: ProfileInfo;
+  profileInfoUpdatedAt: string | null;
+  profileInfoError: string;
+  profileRefreshJob: { id: string; profileId: string; attempt: number; dueAt: number } | null;
   enabled: boolean;
   installationId: string;
   apiUrl: string;
@@ -54,7 +60,9 @@ export interface FieldSnapshot<T> {
 }
 
 export interface StatusPayload {
-  schemaVersion: 3;
+  schemaVersion: 4;
+  profileId: string | null;
+  profileInfo: ProfileInfo;
   installationId: string;
   extensionVersion: string;
   sentAt: string;
@@ -68,4 +76,10 @@ export interface StatusPayload {
   };
   token: FieldSnapshot<string | null>;
   userAgent: FieldSnapshot<string | null>;
+}
+
+export interface ProfileInfo {
+  serialNumber: string | null;
+  name: string | null;
+  groupName: string | null;
 }

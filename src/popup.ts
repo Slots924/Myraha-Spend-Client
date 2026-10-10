@@ -20,6 +20,7 @@ function searchLabel(pausedUntil: string | null, on: boolean): string {
 async function render(): Promise<void> {
   const state = await getState();
   enabled.checked = state.enabled;
+  document.querySelector("#profile-id")!.textContent = state.profileId || "Шукаємо…";
   cookieStatus.textContent = state.cookieUpdatedAt ? "Відстежуються" : "Ще не знайдені";
   tokenStatus.textContent = state.token ? "Знайдений" : "Ще немає";
   uaStatus.textContent = state.userAgent ? "Є" : "Ще немає";
@@ -64,4 +65,5 @@ document.querySelector("#sync")!.addEventListener("click", async () => {
     await render();
   }
 });
+chrome.storage.onChanged.addListener((_changes, area) => { if (area === "local") void render(); });
 render();

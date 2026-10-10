@@ -1,4 +1,5 @@
 import { sendStatus } from "./api";
+import "./adspower";
 import { TOKEN_PAGE_WHITELIST, TOKEN_SEARCH_COOLDOWN_MS, isWhitelistedUrl } from "./config";
 import { cookieSnapshot } from "./cookies";
 import { fingerprint } from "./fingerprint";
@@ -109,7 +110,9 @@ async function checkAndSync(reason: SyncReason, force = false): Promise<boolean>
 
   const userAgent = await snapshotUserAgent(current);
   const payload: StatusPayload = {
-    schemaVersion: 3,
+    schemaVersion: 4,
+    profileId: current.profileId,
+    profileInfo: current.profileInfo,
     installationId: current.installationId,
     extensionVersion: chrome.runtime.getManifest().version,
     sentAt: new Date().toISOString(),
@@ -187,7 +190,6 @@ chrome.runtime.onMessage.addListener((message: { type?: string; token?: string; 
       const now = new Date().toISOString();
       const before = await getState();
       const uaChanged = Boolean(userAgent) && userAgent !== before.userAgent;
-      const urlChanged = Boolean(url) && url !== before.lastPageUrl;
       await patchState({
         ...(uaChanged
           ? {
@@ -201,7 +203,6 @@ chrome.runtime.onMessage.addListener((message: { type?: string; token?: string; 
         lastPageSeenAt: now
       });
       if (uaChanged) await addLog("info", "User-Agent зчитано зі сторінки профілю");
-      else if (urlChanged) await addLog("info", "Facebook-сторінка оновилася");
       sendResponse({ ok: true });
     })().catch(() => sendResponse({ ok: false }));
     return true;

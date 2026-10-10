@@ -25,17 +25,22 @@
       <pre id="whitelist" class="secret-list"></pre>
     </section>
     <section class="panel">
-      <h2>Facebook cookie</h2>
-      <p class="muted">Значення читаються з браузера і разом із токеном надсилаються на сервер щогодини або після зміни cookie.</p>
-      <button id="load-cookies" class="ghost">Показати cookie</button>
-      <p id="cookie-date" class="muted"></p>
-      <p id="ua-date" class="muted"></p>
-      <div id="cookies" class="secret-list"></div>
+      <h2>Інформація профілю AdsPower</h2>
+      <dl class="profile-info">
+        <dt>Профіль ID</dt><dd id="profile-id">Шукаємо…</dd>
+        <dt>Номер профілю</dt><dd id="profile-number">—</dd>
+        <dt>Ім’я профілю</dt><dd id="profile-name">—</dd>
+        <dt>Група AdsPower</dt><dd id="profile-group">—</dd>
+      </dl>
+      <p id="profile-date" class="muted"></p>
+      <p id="profile-error" class="muted"></p>
     </section>
     <section class="panel">
       <h2>Діагностика профілю</h2>
       <p class="muted">Значення показуються лише локально в цьому вікні. Не робіть скриншоти та не надсилайте їх стороннім.</p>
-      <button id="show-diagnostics" class="ghost">Показати UA, токен і технічний стан</button>
+      <p id="cookie-date" class="muted"></p>
+      <p id="ua-date" class="muted"></p>
+      <button id="show-diagnostics" class="ghost">Показати UA, токен, cookie і технічний стан</button>
       <pre id="diagnostics" class="secret-list" hidden></pre>
     </section>
     <section class="panel">

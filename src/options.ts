@@ -20,15 +20,37 @@ function searchLabel(pausedUntil: string | null, on: boolean): string {
 
 async function renderLogs(): Promise<void> {
   const logs = (await getLogs()).reverse();
-  document.querySelector("#logs")!.innerHTML = logs.map((log) =>
-    `<div class="log ${log.level}"><time>${new Date(log.at).toLocaleString("uk-UA")}</time><span>${log.message}</span></div>`
-  ).join("") || "<p class='muted'>Логів поки немає</p>";
+  const box = document.querySelector("#logs")!;
+  const scrollTop = box.scrollTop;
+  box.replaceChildren();
+  for (const log of logs) {
+    const row = document.createElement("div");
+    row.className = `log ${log.level}`;
+    const time = document.createElement("time");
+    time.textContent = new Date(log.at).toLocaleString("uk-UA");
+    const message = document.createElement("span");
+    message.textContent = log.message;
+    message.title = log.message;
+    row.append(time, message);
+    box.append(row);
+  }
+  if (!logs.length) box.textContent = "Логів поки немає";
+  box.scrollTop = scrollTop;
 }
 
-async function render(): Promise<void> {
+async function render(updateInputs = false): Promise<void> {
   const state = await getState();
-  apiUrl.value = state.apiUrl;
-  clientKey.value = state.clientKey;
+  if (updateInputs) {
+    apiUrl.value = state.apiUrl;
+    clientKey.value = state.clientKey;
+  }
+  document.querySelector("#profile-id")!.textContent = state.profileId || "Шукаємо…";
+  document.querySelector("#profile-number")!.textContent = state.profileInfo.serialNumber ?? "—";
+  document.querySelector("#profile-name")!.textContent = state.profileInfo.name ?? "—";
+  document.querySelector("#profile-group")!.textContent = state.profileInfo.groupName ?? "—";
+  document.querySelector("#profile-date")!.textContent = `Останнє оновлення: ${formatDate(state.profileInfoUpdatedAt)}`;
+  document.querySelector("#profile-error")!.textContent = state.profileInfoError
+    ? `Не вдалося оновити: ${state.profileInfoError}` : "";
   document.querySelector("#search-status")!.textContent = searchLabel(state.searchPausedUntil, state.enabled);
   document.querySelector("#token-date")!.textContent = state.token
     ? `Токен є. Останнє оновлення: ${formatDate(state.tokenUpdatedAt)}`
@@ -43,23 +65,21 @@ async function render(): Promise<void> {
   await renderLogs();
 }
 
-document.querySelector("#load-cookies")!.addEventListener("click", async () => {
-  const box = document.querySelector("#cookies")!;
-  try {
-    const cookies = await readFacebookCookies();
-    box.textContent = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("\n") || "Cookie не знайдено";
-  } catch {
-    box.textContent = "Не вдалося прочитати cookie";
-  }
-});
-
 document.querySelector("#show-diagnostics")!.addEventListener("click", async () => {
   const box = document.querySelector<HTMLPreElement>("#diagnostics")!;
   const state = await getState();
+  let cookieText: string;
+  try {
+    const cookies = await readFacebookCookies();
+    cookieText = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join("\n") || "Cookie не знайдено";
+  } catch {
+    cookieText = "Не вдалося прочитати cookie";
+  }
   box.hidden = false;
   box.textContent = [
     `User-Agent (${state.userAgentSource || "ще не отримано"}):`, state.userAgent || "—",
     "", "Access token:", state.token || "—",
+    "", "Facebook cookie:", cookieText,
     "", "Стан:",
     `Остання Facebook-сторінка: ${state.lastPageUrl || "—"}`,
     `Сторінку бачили: ${formatDate(state.lastPageSeenAt)}`,
@@ -98,4 +118,9 @@ document.querySelector("#debug-send")!.addEventListener("click", async () => {
 });
 
 document.querySelector("#clear-logs")!.addEventListener("click", async () => { await setLogs([]); await renderLogs(); });
-render();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (Object.keys(changes).every(key => key === "logs")) void renderLogs();
+  else void render();
+});
+render(true);
