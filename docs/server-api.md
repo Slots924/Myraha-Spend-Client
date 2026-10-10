@@ -1,4 +1,4 @@
-﻿# API розширення Myraha Spend Client
+# API розширення Myraha Spend Client
 
 Розширення робить POST на налаштований API URL. Поточний формат — **schemaVersion: 4**.
 В одному запиті надсилаються ID профілю AdsPower, додаткова інформація профілю,
@@ -26,7 +26,7 @@ X-Client-Key: <ключ клієнта>
     "groupName": "Example group"
   },
   "installationId": "0eb61de5-1d35-47b6-949e-980f87760965",
-  "extensionVersion": "0.3.0",
+  "extensionVersion": "0.40.0",
   "sentAt": "2026-10-10T12:00:00.000Z",
   "reason": "hourly",
   "enabled": true,
